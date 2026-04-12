@@ -65,7 +65,7 @@ class GlueBackupToolSpec
       .name("test-database")
       .build()
 
-    GlueBackupTool.save(database)
+    BackupCommand.save(database)
 
     val json = os.read(os.pwd / "databases" / s"${database.name}.json")
     val actualDatabase = read[model.Database](json)
@@ -85,7 +85,7 @@ class GlueBackupToolSpec
       )
     }
 
-    GlueBackupTool.saveAllDatabases(glueClient, "default")
+    BackupCommand.saveAllDatabases(glueClient, "default")
 
     (1 to 150).foreach { i =>
       val json = os.read(os.pwd / "databases" / s"test-database-$i.json")
@@ -109,7 +109,7 @@ class GlueBackupToolSpec
       .description("test description")
       .build()
 
-    GlueBackupTool.save(table)
+    BackupCommand.save(table)
 
     val json =
       os.read(os.pwd / "tables" / s"${table.databaseName}.${table.name}.json")
@@ -164,7 +164,7 @@ class GlueBackupToolSpec
         )
       }
 
-    GlueBackupTool.saveAllTables(glueClient, "default")
+    BackupCommand.saveAllTables(glueClient, "default")
 
     var json: String = ""
     var actualTable: model.Table = null
@@ -188,7 +188,7 @@ class GlueBackupToolSpec
       .connectionType(ConnectionType.JDBC)
       .build()
 
-    GlueBackupTool.save(connection)
+    BackupCommand.save(connection)
 
     val json = os.read(os.pwd / "connections" / "test-connection.json")
     val actualConnection = read[model.Connection](json)
@@ -213,7 +213,7 @@ class GlueBackupToolSpec
       )
     }
 
-    GlueBackupTool.saveAllConnections(glueClient, "default")
+    BackupCommand.saveAllConnections(glueClient, "default")
 
     (1 to 150).foreach { i =>
       val json = os.read(os.pwd / "connections" / s"test-connection-$i.json")
@@ -222,4 +222,5 @@ class GlueBackupToolSpec
       actualConnection.name shouldBe s"test-connection-$i"
     }
   }
+
 }

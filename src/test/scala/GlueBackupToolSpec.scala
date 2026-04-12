@@ -6,6 +6,12 @@ import software.amazon.awssdk.auth.credentials.{
 }
 import software.amazon.awssdk.services.glue.GlueClient
 import software.amazon.awssdk.services.glue.model.Database
+import software.amazon.awssdk.services.glue.model.Table
+import software.amazon.awssdk.services.glue.model.{
+  Connection as AwsConnection,
+  ConnectionType,
+  ConnectionPropertyKey
+}
 import org.scalatest.{BeforeAndAfterEach, *}
 import org.scalatest.flatspec.{AnyFlatSpec, *}
 import org.scalatest.matchers.should.Matchers.*
@@ -14,8 +20,7 @@ import upickle.default.*
 
 import java.net.URI
 import scala.compiletime.uninitialized
-import scala.collection.JavaConverters.asScalaBufferConverter
-import software.amazon.awssdk.services.glue.model.Table
+import scala.jdk.CollectionConverters.*
 
 class GlueBackupToolSpec
     extends AnyFlatSpec
@@ -54,8 +59,6 @@ class GlueBackupToolSpec
       .build()
   }
 
-  override protected def afterEach(): Unit = {}
-
   it should "backup correctly a Glue Database" in {
     val database = Database.builder
       .catalogId("default")
@@ -90,6 +93,12 @@ class GlueBackupToolSpec
 
       actualDatabase.name shouldBe s"test-database-$i"
     }
+
+    (1 to 150).foreach { i =>
+      glueClient.deleteDatabase(
+        _.catalogId("default").name(s"test-database-$i")
+      )
+    }
   }
 
   it should "backup a table correctly" in {
@@ -102,41 +111,19 @@ class GlueBackupToolSpec
 
     GlueBackupTool.save(table)
 
-    val json = os.read(os.pwd / "tables" / s"${table.name}.json")
+    val json =
+      os.read(os.pwd / "tables" / s"${table.databaseName}.${table.name}.json")
     val actualTable = read[model.Table](json)
 
     actualTable.name shouldBe "test-table"
   }
 
-  it should "backup correctly more then 100s of tables with a single database" in {
-    (1 to 150).foreach { i =>
-      val table = Table.builder
-        .catalogId("default")
-        .databaseName("test-database-1")
-        .name(s"test-table-$i")
-        .build()
+  it should "backup correctly more then 100s of tables" in {
+    // create 150 tables in test-database-1
+    glueClient.createDatabase(
+      _.catalogId("default").databaseInput(_.name("test-database-1"))
+    )
 
-      glueClient.createTable(
-        _.catalogId("default")
-          .databaseName("test-database-1")
-          .tableInput(
-            _.name(table.name)
-          )
-      )
-    }
-
-    GlueBackupTool.saveAllTables(glueClient, "default")
-
-    (1 to 150).foreach { i =>
-      val json = os.read(os.pwd / "tables" / s"test-table-$i.json")
-      val actualTable = read[model.Table](json)
-
-      actualTable.name shouldBe s"test-table-$i"
-    }
-  }
-
-  it should "backup correctly more then 100s of tables with multiple databases" in {
-    // create 150 tabls in test-database-1
     (1 to 150)
       .foreach { i =>
         val table = Table.builder
@@ -154,8 +141,13 @@ class GlueBackupToolSpec
         )
       }
 
-      // create 150 tables in test-database-2
-      (1 to 150)
+    // create 150 tables in test-database-2
+
+    glueClient.createDatabase(
+      _.catalogId("default").databaseInput(_.name("test-database-2"))
+    )
+
+    (1 to 150)
       .foreach { i =>
         val table = Table.builder
           .catalogId("default")
@@ -181,12 +173,53 @@ class GlueBackupToolSpec
       json = os.read(os.pwd / "tables" / s"test-database-1.test-table-$i.json")
       actualTable = read[model.Table](json)
 
-      actualTable.name shouldBe s"test-database-1.test-table-$i"
+      actualTable.name shouldBe s"test-table-$i"
 
       json = os.read(os.pwd / "tables" / s"test-database-2.test-table-$i.json")
       actualTable = read[model.Table](json)
 
-      actualTable.name shouldBe s"test-database-2.test-table-$i"
+      actualTable.name shouldBe s"test-table-$i"
+    }
+  }
+
+  it should "backup a connection correctly" in {
+    val connection = AwsConnection.builder
+      .name("test-connection")
+      .connectionType(ConnectionType.JDBC)
+      .build()
+
+    GlueBackupTool.save(connection)
+
+    val json = os.read(os.pwd / "connections" / "test-connection.json")
+    val actualConnection = read[model.Connection](json)
+
+    actualConnection.name shouldBe "test-connection"
+  }
+
+  it should "backup correctly more than 100 connections" in {
+    (1 to 150).foreach { i =>
+      glueClient.createConnection(
+        _.catalogId("default").connectionInput(
+          _.name(s"test-connection-$i")
+            .connectionType(ConnectionType.JDBC)
+            .connectionProperties(
+              Map(
+                ConnectionPropertyKey.JDBC_CONNECTION_URL -> "jdbc:test://localhost",
+                ConnectionPropertyKey.USERNAME -> "user",
+                ConnectionPropertyKey.PASSWORD -> "pass"
+              ).asJava
+            )
+        )
+      )
+    }
+
+    GlueBackupTool.saveAllConnections(glueClient, "default")
+
+    (1 to 150).foreach { i =>
+      val json = os.read(os.pwd / "connections" / s"test-connection-$i.json")
+      val actualConnection = read[model.Connection](json)
+
+      actualConnection.name shouldBe s"test-connection-$i"
     }
   }
 }

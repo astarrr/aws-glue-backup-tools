@@ -26,6 +26,7 @@ AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... \
 ```
 
 Output layout:
+
 ```
 ./databases/<name>.json
 ./tables/<database>.<table>.json
@@ -48,7 +49,7 @@ If any resource already exists, restore reports all failures at the end and exit
 
 ### Targeting a local or custom endpoint
 
-Both commands accept `--endpoint-override` for use with LocalStack or other compatible endpoints:
+Both commands accept `--endpoint-override` for use with local compatible endpoints:
 
 ```bash
 AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test \
@@ -74,8 +75,6 @@ glue-backup-tool restore
 
 ## Running tests
 
-Tests use [LocalStack Pro](https://www.localstack.cloud/) via Docker. Set your auth token before running:
-
 ```bash
-LOCALSTACK_AUTH_TOKEN=ls-... sbt test
+sbt test
 ```

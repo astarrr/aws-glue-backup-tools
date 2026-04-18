@@ -11,7 +11,6 @@ lazy val root = (project in file("."))
       "software.amazon.awssdk" % "glue" % "2.31.1",
       "org.scala-lang" %% "toolkit" % "0.7.0",
       "com.dimafeng" %% "testcontainers-scala-scalatest" % "0.43.0" % "test",
-      "com.dimafeng" %% "testcontainers-scala-localstack" % "0.43.0" % "test",
       "org.scalatest" %% "scalatest" % "3.2.19" % "test"
     )
   )

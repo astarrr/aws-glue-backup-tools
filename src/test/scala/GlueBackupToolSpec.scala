@@ -33,11 +33,8 @@ class GlueBackupToolSpec
 
   override val containerDef: GenericContainer.Def[GenericContainer] =
     GenericContainer.Def(
-      "localstack/localstack-pro",
-      Seq(4566),
-      Map(
-        "LOCALSTACK_AUTH_TOKEN" -> sys.env("LOCALSTACK_AUTH_TOKEN")
-      )
+      "ministackorg/ministack",
+      Seq(4566)
     )
 
   override protected def beforeAll(): Unit = {
